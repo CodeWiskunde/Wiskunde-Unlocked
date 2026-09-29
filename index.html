@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brugklas Survival: De Kluisjeskraker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --secondary: #EC4899;
+            --dark: #1F2937;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f3f4f6;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .game-btn {
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+        }
+        .game-btn:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: none;
+        }
+        .game-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: translateY(6px);
+        }
+
+        .option-btn {
+            transition: all 0.2s ease;
+            border: 3px solid transparent;
+        }
+        .option-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .option-btn:active:not(:disabled) { transform: translateY(1px); }
+        .option-btn.correct { background-color: #D1FAE5; border-color: #10B981; color: #065F46; }
+        .option-btn.incorrect { background-color: #FEE2E2; border-color: #EF4444; color: #991B1B; }
+
+        /* Locker Styles (Dynamic based on shop) */
+        .locker-container {
+            border: 8px solid #94a3b8;
+            border-radius: 12px;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.1), 0 10px 25px rgba(0,0,0,0.2);
+            transition: all 0.5s ease;
+        }
+        
+        .locker-default { background: linear-gradient(145deg, #e2e8f0, #cbd5e1); border-color: #94a3b8; }
+        .locker-neon { background: linear-gradient(145deg, #0284c7, #2dd4bf); border-color: #38bdf8; color: white !important; }
+        .locker-gold { background: linear-gradient(145deg, #f59e0b, #fbbf24); border-color: #d97706; }
+        .locker-dark { background: linear-gradient(145deg, #1f2937, #111827); border-color: #ef4444; color: #f3f4f6 !important; }
+
+        .vent { background: rgba(0,0,0,0.3); height: 6px; width: 60px; border-radius: 3px; margin-bottom: 8px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: none; }
+        
+        /* Utility */
+        .hidden-screen { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="app-container" class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden relative pop-in flex flex-col min-h-[600px]">
+        
+        <!-- Header (Always visible in Lobby/Shop/Select) -->
+        <div id="top-nav" class="bg-gray-800 text-white p-4 flex justify-between items-center z-10 shadow-md">
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="goToLobby()">
+                <i class="fa-solid fa-school-lock text-indigo-400 text-2xl"></i>
+                <span class="font-bold brand-font text-xl hidden sm:inline">Brugklas Survival</span>
+            </div>
+            <div class="flex items-center space-x-4 bg-gray-700 px-4 py-2 rounded-full border-2 border-gray-600">
+                <i class="fa-solid fa-star text-yellow-400 text-lg"></i>
+                <span id="nav-xp" class="font-black brand-font text-xl text-yellow-400 tracking-wider">0 XP</span>
+            </div>
+        </div>
+
+        <div id="screen-lobby" class="flex-1 p-6 flex flex-col items-center justify-center text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-gray-800 mb-2 brand-font">Welkom in de Lobby!</h1>
+            <p class="text-gray-500 mb-8 max-w-lg">
+                Verdien XP door kluisjes te kraken. Je moet minstens <strong class="text-indigo-600">8 van de 10</strong> vragen goed hebben om een kluisje te openen!
+            </p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg">
+                <button onclick="showScreen('screen-select')" class="game-btn bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-6 px-4 rounded-2xl text-2xl brand-font flex flex-col items-center">
+                    <i class="fa-solid fa-play text-4xl mb-2"></i>
+                    Speel Game
+                </button>
+                <button onclick="showScreen('screen-shop')" class="game-btn bg-pink-500 hover:bg-pink-400 text-white font-bold py-6 px-4 rounded-2xl text-2xl brand-font flex flex-col items-center">
+                    <i class="fa-solid fa-cart-shopping text-4xl mb-2"></i>
+                    XP Shop
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-select" class="hidden-screen flex-1 p-6 flex flex-col items-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 brand-font w-full text-center">Kies je Wiskunde Missie</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+                <!-- Subjects populated by JS -->
+                <button onclick="startMission('groep8')" class="game-btn bg-green-500 hover:bg-green-400 text-white p-4 rounded-xl text-left flex items-center">
+                    <div class="bg-white/20 p-4 rounded-lg mr-4"><i class="fa-solid fa-backward text-2xl"></i></div>
+                    <div>
+                        <h3 class="font-bold text-xl brand-font">Groep 8 Herhaling</h3>
+                        <p class="text-sm opacity-90">Breuken, procenten, kommagetallen. (Pittig!)</p>
+                    </div>
+                </button>
+                <button onclick="startMission('negatief')" class="game-btn bg-blue-500 hover:bg-blue-400 text-white p-4 rounded-xl text-left flex items-center">
+                    <div class="bg-white/20 p-4 rounded-lg mr-4"><i class="fa-solid fa-minus text-2xl"></i></div>
+                    <div>
+                        <h3 class="font-bold text-xl brand-font">Negatieve Getallen</h3>
+                        <p class="text-sm opacity-90">Onder de nul rekenen. Let op de minnetjes!</p>
+                    </div>
+                </button>
+                <button onclick="startMission('algebra')" class="game-btn bg-purple-500 hover:bg-purple-400 text-white p-4 rounded-xl text-left flex items-center">
+                    <div class="bg-white/20 p-4 rounded-lg mr-4"><i class="fa-solid fa-subscript text-2xl"></i></div>
+                    <div>
+                        <h3 class="font-bold text-xl brand-font">Basis Algebra</h3>
+                        <p class="text-sm opacity-90">Rekenen met letters (a, b, x, y).</p>
+                    </div>
+                </button>
+                <button onclick="startMission('mix')" class="game-btn bg-orange-500 hover:bg-orange-400 text-white p-4 rounded-xl text-left flex items-center">
+                    <div class="bg-white/20 p-4 rounded-lg mr-4"><i class="fa-solid fa-shuffle text-2xl"></i></div>
+                    <div>
+                        <h3 class="font-bold text-xl brand-font">De Brugklas Mix</h3>
+                        <p class="text-sm opacity-90">Machten, rekenvolgorde en verrassingen!</p>
+                    </div>
+                </button>
+            </div>
+            <button onclick="goToLobby()" class="mt-8 text-gray-500 hover:text-gray-800 font-bold underline"><i class="fa-solid fa-arrow-left mr-1"></i> Terug naar Lobby</button>
+        </div>
+
+        <div id="screen-shop" class="hidden-screen flex-1 p-6 flex flex-col items-center bg-gray-50">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2 brand-font">Pimp je Kluisje</h2>
+            <p class="text-gray-500 mb-6 text-sm">Koop nieuwe stijlen met je verdiende XP!</p>
+            
+            <div id="shop-items-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+                <!-- Shop items injected via JS -->
+            </div>
+            
+            <button onclick="goToLobby()" class="mt-8 text-gray-500 hover:text-gray-800 font-bold underline"><i class="fa-solid fa-arrow-left mr-1"></i> Terug naar Lobby</button>
+        </div>
+
+        <div id="screen-game" class="hidden-screen flex-col flex-1 bg-gray-900">
+            <!-- Game Header -->
+            <div class="bg-gray-800 text-white p-4 flex justify-between items-center shadow-md border-b-4 border-gray-700">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-lock text-red-400 mr-2" id="lock-icon"></i>
+                    <span id="level-display" class="font-bold brand-font text-lg">Code 1/10</span>
+                </div>
+                <div class="flex items-center bg-gray-700 px-3 py-1 rounded-full text-sm font-bold">
+                    Doel: 8/10
+                </div>
+                <div class="flex items-center text-green-400 font-black text-xl brand-font">
+                    <i class="fa-solid fa-check mr-1 text-sm"></i> <span id="game-score-display">0</span>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-700 h-2">
+                <div id="progress-bar" class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <!-- Locker Area -->
+            <div class="flex-1 p-4 md:p-8 flex flex-col justify-center items-center relative overflow-hidden">
+                <!-- The Locker -->
+                <div id="the-locker" class="locker-container locker-default w-full max-w-md p-6 flex flex-col items-center relative z-10">
+                    <div class="flex flex-col items-center mb-6">
+                        <div class="vent"></div>
+                        <div class="vent"></div>
+                        <div class="vent"></div>
+                    </div>
+
+                    <div id="category-badge" class="absolute top-4 right-4 bg-white/80 text-gray-800 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider backdrop-blur-sm shadow-sm">
+                        Onderwerp
+                    </div>
+
+                    <!-- Question text is part of locker styling -->
+                    <h3 id="question-text" class="text-2xl md:text-3xl font-black text-center mb-6 brand-font drop-shadow-sm min-h-[80px] flex items-center justify-center leading-tight">
+                        Vraag komt hier
+                    </h3>
+
+                    <!-- Options -->
+                    <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                        <!-- Buttons injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-end" class="hidden-screen flex-1 p-8 flex flex-col items-center justify-center text-center">
+            <div id="end-icon" class="text-7xl mb-4">
+                <i class="fa-solid fa-door-open text-green-500"></i>
+            </div>
+            <h1 id="end-title" class="text-4xl md:text-5xl font-black text-gray-800 mb-2 brand-font">
+                Kluisje Gekraakt!
+            </h1>
+            
+            <div class="bg-gray-100 rounded-2xl p-6 w-full max-w-md my-6 border-4 border-gray-200">
+                <h3 class="text-gray-600 font-bold mb-1 uppercase tracking-wide text-sm">Jouw Score</h3>
+                <div class="text-7xl font-black brand-font mb-2" id="final-score">
+                    10/10
+                </div>
+                <!-- Requirement note -->
+                <p class="text-sm font-bold text-gray-400 mb-4 border-b-2 border-gray-200 pb-4">Minimaal 8/10 nodig om te openen</p>
+                
+                <div id="reward-box" class="bg-yellow-100 border-2 border-yellow-400 text-yellow-700 p-3 rounded-xl font-bold flex items-center justify-center text-lg pop-in">
+                    <i class="fa-solid fa-star mr-2 text-yellow-500"></i> +100 XP VERDIEND!
+                </div>
+            </div>
+            
+            <button onclick="goToLobby()" class="game-btn bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-2xl text-xl brand-font w-full max-w-md">
+                Terug naar Lobby
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- PLAYER DATA ---
+        let player = {
+            xp: 0,
+            ownedItems: ['default'],
+            equippedItem: 'default'
+        };
+
+        const shopItems = [
+            { id: 'default', name: 'Standaard Grijs', cost: 0, icon: 'fa-box', color: 'bg-slate-300' },
+            { id: 'neon', name: 'Neon Hacker', cost: 200, icon: 'fa-bolt', color: 'bg-cyan-400' },
+            { id: 'gold', name: 'Gouden VIP', cost: 500, icon: 'fa-crown', color: 'bg-yellow-400' },
+            { id: 'dark', name: 'Dark Mode', cost: 1000, icon: 'fa-moon', color: 'bg-gray-800' }
+        ];
+
+        // --- SOUND EFFECTS (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playSound(type) {
+            if(type === 'correct') { playTone(600, 'sine', 0.1, 0.4); setTimeout(() => playTone(800, 'sine', 0.2, 0.4), 100); }
+            if(type === 'wrong') { playTone(250, 'sawtooth', 0.3, 0.4); setTimeout(() => playTone(200, 'sawtooth', 0.4, 0.4), 150); }
+            if(type === 'win') { [400,500,600,800].forEach((f,i) => setTimeout(() => playTone(f, 'square', 0.2, 0.3), i*150)); }
+            if(type === 'fail') { [300,250,200,150].forEach((f,i) => setTimeout(() => playTone(f, 'triangle', 0.3, 0.4), i*200)); }
+            if(type === 'buy') { playTone(900, 'sine', 0.1, 0.3); setTimeout(() => playTone(1200, 'sine', 0.4, 0.3), 100); }
+        }
+
+        const questionBanks = {
+            groep8: [
+                { text: "Wat is 3/4 + 1/8?", options: ["7/8", "4/12", "4/8", "5/8"], answer: 0 },
+                { text: "Een jas van €120 krijgt 15% korting. Wat betaal je?", options: ["€102", "€105", "€18", "€95"], answer: 0 },
+                { text: "Reken uit: 12,5 : 0,5", options: ["25", "6,25", "2,5", "62,5"], answer: 0 },
+                { text: "Wat is 5/8 deel van 640?", options: ["400", "300", "500", "480"], answer: 0 },
+                { text: "4/5 is gelijk aan hoeveel procent?", options: ["80%", "40%", "45%", "60%"], answer: 0 },
+                { text: "Reken uit: 0,05 x 1000", options: ["50", "5", "500", "0,5"], answer: 0 },
+                { text: "De helft van 1/4 is...", options: ["1/8", "1/2", "2/4", "1/6"], answer: 0 },
+                { text: "Wat is groter: 5/8 of 2/3?", options: ["2/3", "5/8", "Ze zijn gelijk", "Kan niet"], answer: 0 },
+                { text: "Reken uit: 840 : 12", options: ["70", "60", "80", "72"], answer: 0 },
+                { text: "Een breuk vereenvoudigen: 16/24 wordt...", options: ["2/3", "4/6", "3/4", "1/2"], answer: 0 }
+            ],
+            negatief: [
+                { text: "-8 + 15 = ?", options: ["7", "-7", "23", "-23"], answer: 0 },
+                { text: "-4 - 9 = ?", options: ["-13", "5", "-5", "13"], answer: 0 },
+                { text: "12 - 18 = ?", options: ["-6", "6", "30", "0"], answer: 0 },
+                { text: "-5 - (-7) = ?", options: ["2", "-12", "12", "-2"], answer: 0 },
+                { text: "-10 + (-5) = ?", options: ["-15", "-5", "5", "15"], answer: 0 },
+                { text: "(-3) x 6 = ?", options: ["-18", "18", "9", "-9"], answer: 0 },
+                { text: "(-4) x (-5) = ?", options: ["20", "-20", "9", "-9"], answer: 0 },
+                { text: "20 : (-4) = ?", options: ["-5", "5", "16", "24"], answer: 0 },
+                { text: "-8 - 2 + 5 = ?", options: ["-5", "-1", "-15", "5"], answer: 0 },
+                { text: "0 - 15 = ?", options: ["-15", "15", "0", "1"], answer: 0 }
+            ],
+            algebra: [
+                { text: "Herleid: 3a + 5a", options: ["8a", "15a", "8a²", "35a"], answer: 0 },
+                { text: "Herleid: 7x - 2x + x", options: ["6x", "4x", "5x", "8x"], answer: 0 },
+                { text: "Herleid: 4a + 3b - 2a", options: ["2a + 3b", "5ab", "7ab - 2a", "6ab"], answer: 0 },
+                { text: "Herleid: 3x · 4y", options: ["12xy", "7xy", "12x+y", "34xy"], answer: 0 },
+                { text: "Herleid: a · a", options: ["a²", "2a", "a", "0"], answer: 0 },
+                { text: "Als x = 3, wat is dan 4x + 2?", options: ["14", "12", "9", "24"], answer: 0 },
+                { text: "Herleid: 5p - p", options: ["4p", "5", "p", "5p²"], answer: 0 },
+                { text: "Herleid: -2a · 3b", options: ["-6ab", "-5ab", "ab", "-6a+b"], answer: 0 },
+                { text: "Herleid: 2x + 3x + 4", options: ["5x + 4", "9x", "24x", "5x²"], answer: 0 },
+                { text: "Als y = -2, wat is dan 5y?", options: ["-10", "10", "3", "-7"], answer: 0 }
+            ],
+            mix: [
+                { text: "Bereken: 5² (Kwadraat)", options: ["25", "10", "7", "52"], answer: 0 },
+                { text: "Bereken: (-3)²", options: ["9", "-9", "-6", "6"], answer: 0 },
+                { text: "Bereken: -3² (Let op!)", options: ["-9", "9", "-6", "6"], answer: 0 },
+                { text: "Rekenvolgorde: 10 - 2 x 3", options: ["4", "24", "16", "5"], answer: 0 },
+                { text: "Bereken: 2³ (Twee tot de derde)", options: ["8", "6", "16", "4"], answer: 0 },
+                { text: "Wortel van 64 (√64)", options: ["8", "32", "6", "4"], answer: 0 },
+                { text: "Rekenvolgorde: (5 + 3) x 2", options: ["16", "11", "13", "10"], answer: 0 },
+                { text: "Oppervlakte driehoek: basis=4, hoogte=5", options: ["10", "20", "9", "18"], answer: 0 },
+                { text: "Herleid: 2a · 3a", options: ["6a²", "5a²", "6a", "5a"], answer: 0 },
+                { text: "Wat is 10% van €45?", options: ["€4,50", "€45", "€0,45", "€9,00"], answer: 0 }
+            ]
+        };
+
+        let currentQuestions = [];
+        let qIndex = 0;
+        let sessionScore = 0;
+        let isAnswering = false;
+
+        function updateTopNav() {
+            document.getElementById('nav-xp').innerText = player.xp + ' XP';
+        }
+
+        function showScreen(id) {
+            ['screen-lobby', 'screen-select', 'screen-shop', 'screen-game', 'screen-end'].forEach(sid => {
+                document.getElementById(sid).classList.add('hidden-screen');
+            });
+            document.getElementById('top-nav').style.display = (id === 'screen-game' || id === 'screen-end') ? 'none' : 'flex';
+            
+            const target = document.getElementById(id);
+            target.classList.remove('hidden-screen');
+            target.classList.remove('pop-in');
+            void target.offsetWidth; // trigger reflow
+            target.classList.add('pop-in');
+
+            if(id === 'screen-shop') renderShop();
+            updateTopNav();
+        }
+
+        function goToLobby() {
+            stopConfetti();
+            showScreen('screen-lobby');
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startMission(category) {
+            // Setup Audio context on user interaction
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            let rawQuestions = JSON.parse(JSON.stringify(questionBanks[category]));
+            // Shuffle questions and take 10 (though arrays are already 10 long)
+            currentQuestions = shuffle(rawQuestions).slice(0, 10);
+            
+            qIndex = 0;
+            sessionScore = 0;
+            
+            // Apply equipped locker style
+            const locker = document.getElementById('the-locker');
+            locker.className = `locker-container locker-${player.equippedItem} w-full max-w-md p-6 flex flex-col items-center relative z-10`;
+            
+            showScreen('screen-game');
+            loadNextQuestion();
+        }
+
+        function loadNextQuestion() {
+            if (qIndex >= currentQuestions.length) {
+                endMission();
+                return;
+            }
+
+            isAnswering = false;
+            const q = currentQuestions[qIndex];
+            
+            document.getElementById('level-display').innerText = `Code ${qIndex + 1}/10`;
+            document.getElementById('game-score-display').innerText = sessionScore;
+            document.getElementById('progress-bar').style.width = `${(qIndex / 10) * 100}%`;
+            
+            document.getElementById('question-text').innerText = q.text;
+            
+            const categoryNames = {groep8: "Groep 8", negatief: "Negatief", algebra: "Algebra", mix: "Brugklas Mix"};
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            // Remember original correct answer text
+            const correctText = q.options[q.answer];
+            
+            // Shuffle options
+            let shuffledOptions = shuffle([...q.options]);
+
+            shuffledOptions.forEach(optText => {
+                const isCorrect = (optText === correctText);
+                const btn = document.createElement('button');
+                btn.className = "option-btn bg-white text-gray-800 font-black py-4 px-3 rounded-xl text-lg brand-font shadow-sm w-full";
+                btn.innerText = optText;
+                
+                // If using Dark/Neon locker, style buttons a bit differently to fit
+                if(player.equippedItem === 'dark' || player.equippedItem === 'neon') {
+                    btn.classList.add('bg-opacity-90');
+                }
+
+                btn.onclick = () => handleAnswer(btn, isCorrect);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(btn, isCorrect) {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            const allBtns = document.querySelectorAll('.option-btn');
+            
+            if (isCorrect) {
+                btn.classList.add('correct');
+                btn.innerHTML += ' <i class="fa-solid fa-check ml-1"></i>';
+                playSound('correct');
+                sessionScore++;
+                document.getElementById('game-score-display').innerText = sessionScore;
+            } else {
+                btn.classList.add('incorrect');
+                btn.innerHTML += ' <i class="fa-solid fa-xmark ml-1"></i>';
+                playSound('wrong');
+                
+                const locker = document.getElementById('the-locker');
+                locker.classList.remove('shake');
+                void locker.offsetWidth;
+                locker.classList.add('shake');
+
+                // Highlight correct answer
+                allBtns.forEach(b => {
+                    // Quick check by stripping HTML to find the correct one if needed, 
+                    // but we just show visually it's wrong for now to keep them guessing next time.
+                });
+            }
+
+            setTimeout(() => {
+                qIndex++;
+                loadNextQuestion();
+            }, 1200);
+        }
+
+        function endMission() {
+            showScreen('screen-end');
+            
+            const scoreDisplay = document.getElementById('final-score');
+            const titleDisplay = document.getElementById('end-title');
+            const iconDisplay = document.getElementById('end-icon');
+            const rewardBox = document.getElementById('reward-box');
+            
+            scoreDisplay.innerText = `${sessionScore}/10`;
+            
+            if (sessionScore >= 8) {
+                // WON
+                titleDisplay.innerText = "Kluisje Gekraakt!";
+                titleDisplay.className = "text-4xl md:text-5xl font-black text-green-600 mb-2 brand-font";
+                iconDisplay.innerHTML = '<i class="fa-solid fa-door-open text-green-500"></i>';
+                scoreDisplay.className = "text-7xl font-black brand-font mb-2 text-green-500";
+                
+                rewardBox.classList.remove('hidden-screen');
+                player.xp += 100;
+                playSound('win');
+                startConfetti();
+            } else {
+                // LOST
+                titleDisplay.innerText = "Kluisje Blijft Dicht!";
+                titleDisplay.className = "text-4xl md:text-5xl font-black text-red-600 mb-2 brand-font";
+                iconDisplay.innerHTML = '<i class="fa-solid fa-lock text-red-500"></i>';
+                scoreDisplay.className = "text-7xl font-black brand-font mb-2 text-red-500";
+                
+                rewardBox.classList.add('hidden-screen'); // No XP
+                playSound('fail');
+            }
+        }
+
+        function renderShop() {
+            const container = document.getElementById('shop-items-container');
+            container.innerHTML = '';
+            
+            shopItems.forEach(item => {
+                const isOwned = player.ownedItems.includes(item.id);
+                const isEquipped = player.equippedItem === item.id;
+                
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl shadow-sm border-2 border-gray-100 flex flex-col items-center text-center relative";
+                
+                if (isEquipped) {
+                    card.classList.add('border-indigo-500', 'ring-4', 'ring-indigo-100');
+                }
+
+                let btnHTML = '';
+                if (isEquipped) {
+                    btnHTML = `<button disabled class="w-full mt-4 bg-gray-200 text-gray-500 font-bold py-2 rounded-xl text-sm uppercase">Uitgerust</button>`;
+                } else if (isOwned) {
+                    btnHTML = `<button onclick="equipItem('${item.id}')" class="game-btn w-full mt-4 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-bold py-2 rounded-xl text-sm uppercase">Equip</button>`;
+                } else {
+                    const canAfford = player.xp >= item.cost;
+                    const btnClass = canAfford ? 'bg-pink-500 hover:bg-pink-400 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed';
+                    btnHTML = `<button onclick="buyItem('${item.id}', ${item.cost})" ${!canAfford ? 'disabled' : ''} class="game-btn w-full mt-4 ${btnClass} font-bold py-2 rounded-xl text-sm flex items-center justify-center">
+                        <i class="fa-solid fa-star mr-1 text-xs"></i> ${item.cost}
+                    </button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="w-16 h-16 rounded-xl ${item.color} flex items-center justify-center text-white text-2xl mb-3 shadow-inner">
+                        <i class="fa-solid ${item.icon}"></i>
+                    </div>
+                    <h4 class="font-bold brand-font text-gray-800">${item.name}</h4>
+                    ${btnHTML}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function buyItem(id, cost) {
+            if (player.xp >= cost && !player.ownedItems.includes(id)) {
+                player.xp -= cost;
+                player.ownedItems.push(id);
+                player.equippedItem = id;
+                playSound('buy');
+                updateTopNav();
+                renderShop();
+            }
+        }
+
+        function equipItem(id) {
+            if (player.ownedItems.includes(id)) {
+                player.equippedItem = id;
+                renderShop();
+            }
+        }
+
+        let confettiLoop;
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function startConfetti() {
+            canvas.style.display = 'block';
+            resizeCanvas();
+            particles = [];
+            const colors = ['#4F46E5', '#EC4899', '#10B981', '#F59E0B', '#3B82F6'];
+            
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 10 + 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: Math.random() * 4 + 3,
+                    speedX: Math.random() * 3 - 1.5,
+                    rot: Math.random() * 360,
+                    rotSpeed: Math.random() * 5 - 2.5
+                });
+            }
+            
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for(let i=0; i<particles.length; i++) {
+                    let p = particles[i];
+                    ctx.save();
+                    ctx.translate(p.x + p.size/2, p.y + p.size/2);
+                    ctx.rotate(p.rot * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                    
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.rot += p.rotSpeed;
+                    
+                    if(p.y > canvas.height) { p.y = -20; p.x = Math.random() * canvas.width; }
+                }
+                confettiLoop = requestAnimationFrame(render);
+            }
+            render();
+            setTimeout(stopConfetti, 4000); // Stop after 4s
+        }
+
+        function stopConfetti() {
+            if(confettiLoop) cancelAnimationFrame(confettiLoop);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'none';
+        }
+
+        // Init
+        updateTopNav();
+    </script>
+</body>
+</html>
