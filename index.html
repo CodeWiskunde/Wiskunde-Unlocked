@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brugklas Survival: De Kluisjeskraker</title>
+    <title>Brugklas Survival: De Kluisjeskraker v2.0</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -68,16 +64,16 @@
         }
         .option-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .option-btn:active:not(:disabled) { transform: translateY(1px); }
-        .option-btn.correct { background-color: #D1FAE5; border-color: #10B981; color: #065F46; }
-        .option-btn.incorrect { background-color: #FEE2E2; border-color: #EF4444; color: #991B1B; }
+        .option-btn.correct { background-color: #D1FAE5 !important; border-color: #10B981 !important; color: #065F46 !important; }
+        .option-btn.incorrect { background-color: #FEE2E2 !important; border-color: #EF4444 !important; color: #991B1B !important; }
 
-        /* Locker Styles */
         .locker-container {
             border: 8px solid #94a3b8;
             border-radius: 12px;
             box-shadow: inset 0 4px 6px rgba(0,0,0,0.1), 0 10px 25px rgba(0,0,0,0.2);
             transition: all 0.5s ease;
         }
+
         .locker-default { background: linear-gradient(145deg, #e2e8f0, #cbd5e1); border-color: #94a3b8; }
         .locker-neon { background: linear-gradient(145deg, #0284c7, #2dd4bf); border-color: #38bdf8; color: white !important; }
         .locker-gold { background: linear-gradient(145deg, #f59e0b, #fbbf24); border-color: #d97706; }
@@ -91,7 +87,7 @@
 
         #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: none; }
         .hidden-screen { display: none !important; }
-        
+
         .fire-glow {
             text-shadow: 0 0 10px #f97316, 0 0 20px #ef4444;
             animation: pulseFire 1s infinite alternate;
@@ -122,7 +118,7 @@
             </div>
         </div>
 
-        <!-- Feedback Modal -->
+        <!-- Feedback Modal (Fout antwoord + Uitwerking) -->
         <div id="feedback-modal" class="hidden-screen absolute inset-0 z-50 flex items-center justify-center p-4">
             <div class="bg-red-50 border-4 border-red-500 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl pop-in">
                 <div class="text-5xl text-red-500 mb-2"><i class="fa-solid fa-circle-xmark"></i></div>
@@ -151,8 +147,7 @@
             <div class="flex items-center space-x-2 cursor-pointer" onclick="goToLobby()">
                 <i class="fa-solid fa-school-lock text-indigo-400 text-2xl"></i>
                 <span class="font-bold brand-font text-xl hidden sm:inline">Brugklas Survival</span>
-                <!-- Dit is het v2.0 labeltje om te verifiëren dat dit de nieuwe code is -->
-                <span class="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">v2.0</span>
+                <span class="bg-indigo-600 text-xs px-2 py-0.5 rounded-full font-bold ml-1">v2.0</span>
             </div>
             <div class="flex items-center space-x-4 bg-gray-700 px-4 py-2 rounded-full border-2 border-gray-600">
                 <i class="fa-solid fa-star text-yellow-400 text-lg"></i>
@@ -335,7 +330,7 @@
         ];
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
+
         function playTone(freq, type, duration, vol) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
@@ -360,51 +355,46 @@
 
         const questionBanks = {
             groep8: [
-                { type: 'mc', text: "Wat is 3/4 + 1/8?", options: ["7/8", "4/12", "4/8", "5/8"], answer: 0, hint: "Maak de noemers (onderkant) gelijk: 3/4 = 6/8" },
-                { type: 'mc', text: "Een jas van €120 krijgt 15% korting. Wat betaal je?", options: ["€102", "€105", "€18", "€95"], answer: 0, hint: "10% is €12. 5% is de helft daarvan (€6). Tel dat op en haal het van €120 af." },
-                { type: 'input', text: "Reken uit: 12,5 : 0,5", answer: "25", hint: "Delen door een half (0,5) is hetzelfde als vermenigvuldigen met 2!" },
-                { type: 'mc', text: "Wat is 5/8 deel van 640?", options: ["400", "300", "500", "480"], answer: 0, hint: "Bereken eerst 1/8 deel door 640 te delen door 8." },
-                { type: 'mc', text: "4/5 is gelijk aan hoeveel procent?", options: ["80%", "40%", "45%", "60%"], answer: 0, hint: "1/5 is 20%. Hoeveel is 4 keer dat?" },
-                { type: 'input', text: "Reken uit: 0,05 x 1000", answer: "50", hint: "Verschuif de komma 3 plekken naar rechts (want er zijn 3 nullen)." },
-                { type: 'mc', text: "De helft van 1/4 is...", options: ["1/8", "1/2", "2/4", "1/6"], answer: 0, hint: "Als je een pizza in 4 stukken snijdt, en je snijdt zo'n stuk doormidden..." },
-                { type: 'mc', text: "Wat is groter: 5/8 of 2/3?", options: ["2/3", "5/8", "Ze zijn gelijk", "Kan niet"], answer: 0, hint: "Maak ze gelijknamig: 24 is een handige noemer (15/24 vs 16/24)." },
-                { type: 'input', text: "Reken uit: 840 : 12", answer: "70", hint: "Denk aan de tafel van 12: 84 : 12 = 7." },
-                { type: 'mc', text: "Vereenvoudig breuk: 16/24", options: ["2/3", "4/6", "3/4", "1/2"], answer: 0, hint: "Deel de boven- en onderkant door het grootst mogelijke getal (8)." },
-                { type: 'mc', text: "Hoeveel centimeter is 1,5 meter?", options: ["150 cm", "15 cm", "1500 cm", "0,1 cm"], answer: 0, hint: "1 meter is 100 centimeter." },
-                { type: 'input', text: "Reken uit: 25% van 200", answer: "50", hint: "25% is hetzelfde als 1/4 deel. Deel 200 door 4." },
-                { type: 'mc', text: "Een film begint om 19:45 en duurt 90 min. Hoe laat is hij afgelopen?", options: ["21:15", "21:00", "20:35", "21:30"], answer: 0, hint: "90 minuten is 1 uur en 30 minuten erbij optellen." },
-                { type: 'input', text: "Omtrek van een vierkant met zijden van 5 cm?", answer: "20", hint: "Omtrek = alle vier de randen bij elkaar opgeteld." },
-                { type: 'mc', text: "3 broden van €2,10. Je betaalt met €10. Wisselgeld?", options: ["€3,70", "€4,70", "€6,30", "€2,70"], answer: 0, hint: "3 x €2,10 = €6,30. Haal dat van €10,00 af." }
+                { type: 'mc', text: "Wat is 3/4 + 1/8?", options: ["7/8", "4/12", "4/8", "5/8"], answer: 0, hint: "Maak de noemers (onderkant) gelijk: 3/4 = 6/8. Tel daarna de tellers op: 6/8 + 1/8 = 7/8." },
+                { type: 'mc', text: "Een jas van €120 krijgt 15% korting. Wat betaal je?", options: ["€102", "€105", "€18", "€95"], answer: 0, hint: "10% is €12. 5% is €6. Korting = €18. €120 - €18 = €102." },
+                { type: 'input', text: "Reken uit: 12,5 : 0,5", answer: "25", hint: "Delen door 0,5 is hetzelfde als vermenigvuldigen met 2. Dus 12,5 x 2 = 25." },
+                { type: 'mc', text: "Wat is 5/8 deel van 640?", options: ["400", "300", "500", "480"], answer: 0, hint: "1/8 deel = 640 : 8 = 80. Vervolgens 5/8 deel = 5 x 80 = 400." },
+                { type: 'mc', text: "4/5 is gelijk aan hoeveel procent?", options: ["80%", "40%", "45%", "60%"], answer: 0, hint: "1/5 is 20%. Vermenigvuldig met 4: 4 x 20% = 80%." },
+                { type: 'input', text: "Reken uit: 0,05 x 1000", answer: "50", hint: "Verschuif de komma 3 plekken naar rechts omdat er 3 nullen staan: 0,05 -> 0,5 -> 5 -> 50." },
+                { type: 'mc', text: "De helft van 1/4 is...", options: ["1/8", "1/2", "2/4", "1/6"], answer: 0, hint: "1/4 delen door 2 geeft 1/8 (want 2 x 1/8 = 1/4)." },
+                { type: 'mc', text: "Wat is groter: 5/8 of 2/3?", options: ["2/3", "5/8", "Ze zijn gelijk", "Kan niet"], answer: 0, hint: "Maak noemers 24: 5/8 = 15/24 en 2/3 = 16/24. Omdat 16 groter is dan 15 is 2/3 groter." },
+                { type: 'input', text: "Reken uit: 840 : 12", answer: "70", hint: "Denk aan 84 : 12 = 7. Met een nul erbij wordt dat 70." },
+                { type: 'mc', text: "Vereenvoudig de breuk: 16/24", options: ["2/3", "4/6", "3/4", "1/2"], answer: 0, hint: "Deel boven en onder door 8: 16 : 8 = 2 en 24 : 8 = 3." }
             ],
             negatief: [
-                { type: 'mc', text: "-8 + 15 = ?", options: ["7", "-7", "23", "-23"], answer: 0, hint: "Je staat €8 in de min en krijgt er €15 bij. Waar kom je uit?" },
-                { type: 'input', text: "-4 - 9 = ?", answer: "-13", hint: "Je bent al op -4 op de getallenlijn en gaat nog 9 stappen verder naar beneden." },
-                { type: 'mc', text: "12 - 18 = ?", options: ["-6", "6", "30", "0"], answer: 0, hint: "Je trekt er meer af dan je hebt, dus je komt onder de nul uit." },
-                { type: 'mc', text: "-5 - (-7) = ?", options: ["2", "-12", "12", "-2"], answer: 0, hint: "Let op de rekenregel: min min wordt plus! Dus: -5 + 7." },
-                { type: 'input', text: "-10 + (-5) = ?", answer: "-15", hint: "Plus min wordt min. Je telt eigenlijk twee negatieve getallen bij elkaar op." },
-                { type: 'mc', text: "(-3) x 6 = ?", options: ["-18", "18", "9", "-9"], answer: 0, hint: "Positief x negatief = negatief." },
-                { type: 'mc', text: "(-4) x (-5) = ?", options: ["20", "-20", "9", "-9"], answer: 0, hint: "Negatief x negatief = positief!" },
-                { type: 'input', text: "20 : (-4) = ?", answer: "-5", hint: "Positief gedeeld door negatief is altijd negatief." },
-                { type: 'mc', text: "-8 - 2 + 5 = ?", options: ["-5", "-1", "-15", "5"], answer: 0, hint: "Doe het stap voor stap van links naar rechts. Eerst -8 - 2." },
-                { type: 'input', text: "0 - 15 = ?", answer: "-15", hint: "Vanaf de 0 vijftien stappen naar beneden tellen." }
+                { type: 'mc', text: "-8 + 15 = ?", options: ["7", "-7", "23", "-23"], answer: 0, hint: "Start op -8 en ga 15 stappen omhoog. Je passeert de 0 na 8 stappen en houdt nog 7 over." },
+                { type: 'input', text: "-4 - 9 = ?", answer: "-13", hint: "Je staat al in de min (-4) en gaat nog 9 verder naar beneden: -4 - 9 = -13." },
+                { type: 'mc', text: "12 - 18 = ?", options: ["-6", "6", "30", "0"], answer: 0, hint: "12 - 12 = 0, en dan nog 6 stappen verder omlaag is -6." },
+                { type: 'mc', text: "-5 - (-7) = ?", options: ["2", "-12", "12", "-2"], answer: 0, hint: "Twee mintekens achter elkaar worden plus: -5 + 7 = 2." },
+                { type: 'input', text: "-10 + (-5) = ?", answer: "-15", hint: "Plus en min naast elkaar wordt min: -10 - 5 = -15." },
+                { type: 'mc', text: "(-3) x 6 = ?", options: ["-18", "18", "9", "-9"], answer: 0, hint: "Negatief keer positief wordt altijd negatief: -(3 x 6) = -18." },
+                { type: 'mc', text: "(-4) x (-5) = ?", options: ["20", "-20", "9", "-9"], answer: 0, hint: "Negatief keer negatief wordt altijd positief: 4 x 5 = 20." },
+                { type: 'input', text: "20 : (-4) = ?", answer: "-5", hint: "Positief gedeeld door negatief wordt negatief: -(20 : 4) = -5." },
+                { type: 'mc', text: "-8 - 2 + 5 = ?", options: ["-5", "-1", "-15", "5"], answer: 0, hint: "Stap 1: -8 - 2 = -10. Stap 2: -10 + 5 = -5." },
+                { type: 'input', text: "0 - 15 = ?", answer: "-15", hint: "Vanaf nul 15 stappen naar links op de getallenlijn is -15." }
             ],
             algebra: [
-                { type: 'mc', text: "Herleid: 3a + 5a", options: ["8a", "15a", "8a²", "35a"], answer: 0, hint: "Gelijksoortige termen! 3 appels + 5 appels = ?" },
-                { type: 'mc', text: "Herleid: 7x - 2x + x", options: ["6x", "4x", "5x", "8x"], answer: 0, hint: "Een losse 'x' betekent eigenlijk + 1x." },
-                { type: 'mc', text: "Herleid: 4a + 3b - 2a", options: ["2a + 3b", "5ab", "7ab - 2a", "6ab"], answer: 0, hint: "Je mag alleen dezelfde letters (gelijksoortige termen) optellen of aftrekken." },
-                { type: 'mc', text: "Herleid: 3x · 4y", options: ["12xy", "7xy", "12x+y", "34xy"], answer: 0, hint: "Bij vermenigvuldigen: Doe de getallen keer elkaar, en plak de letters erachter." },
-                { type: 'input', text: "Herleid: a · a (typ 'a2' voor a²)", answer: "a2", hint: "Een letter keer zichzelf is die letter in het kwadraat." },
-                { type: 'mc', text: "Als x = 3, wat is dan 4x + 2?", options: ["14", "12", "9", "24"], answer: 0, hint: "Tussen een getal en een letter staat een onzichtbaar keerteken. Dus 4 keer 3." },
-                { type: 'input', text: "Herleid: 5p - p", answer: "4p", hint: "Er staat eigenlijk 5p - 1p." },
-                { type: 'mc', text: "Herleid: -2a · 3b", options: ["-6ab", "-5ab", "ab", "-6a+b"], answer: 0, hint: "Negatief getal keer positief getal is een negatief antwoord." }
+                { type: 'mc', text: "Herleid: 3a + 5a", options: ["8a", "15a", "8a²", "35a"], answer: 0, hint: "Tel de gelijksoortige termen op: 3 + 5 = 8, dus 8a." },
+                { type: 'mc', text: "Herleid: 7x - 2x + x", options: ["6x", "4x", "5x", "8x"], answer: 0, hint: "x staat voor 1x. Dus: 7x - 2x = 5x, en 5x + 1x = 6x." },
+                { type: 'mc', text: "Herleid: 4a + 3b - 2a", options: ["2a + 3b", "5ab", "7ab - 2a", "6ab"], answer: 0, hint: "Samenvoegen wat bij elkaar hoort: 4a - 2a = 2a. De + 3b blijft los staan." },
+                { type: 'mc', text: "Herleid: 3x · 4y", options: ["12xy", "7xy", "12x+y", "34xy"], answer: 0, hint: "Getallen vermenigvuldigen (3 x 4 = 12) en letters erachter plakken: 12xy." },
+                { type: 'input', text: "Herleid: a · a (typ 'a2' voor a²)", answer: "a2", hint: "Een letter keer zichzelf schrijf je als een kwadraat: a² (a2)." },
+                { type: 'mc', text: "Als x = 3, wat is dan 4x + 2?", options: ["14", "12", "9", "24"], answer: 0, hint: "Vul 3 in op de plek van x: 4 x 3 + 2 = 12 + 2 = 14." },
+                { type: 'input', text: "Herleid: 5p - p", answer: "4p", hint: "5p - 1p = 4p." },
+                { type: 'mc', text: "Herleid: -2a · 3b", options: ["-6ab", "-5ab", "ab", "-6a+b"], answer: 0, hint: "-2 x 3 = -6. Met de letters erbij geeft dat -6ab." }
             ],
             mix: [
-                { type: 'input', text: "Bereken: 5²", answer: "25", hint: "Het kwadraat betekent het getal keer zichzelf (5 x 5)." },
-                { type: 'mc', text: "Bereken: (-3)²", options: ["9", "-9", "-6", "6"], answer: 0, hint: "Door de haakjes doe je: (-3) x (-3). Min keer min is plus!" },
-                { type: 'mc', text: "Bereken: -3²", options: ["-9", "9", "-6", "6"], answer: 0, hint: "Let op! Er staan geen haakjes, dus alleen de 3 staat in het kwadraat." },
-                { type: 'mc', text: "Rekenvolgorde: 10 - 2 x 3", options: ["4", "24", "16", "5"], answer: 0, hint: "Vermenigvuldigen gaat altijd vóór aftrekken." },
-                { type: 'input', text: "Bereken: 2³", answer: "8", hint: "Twee tot de derde macht: 2 x 2 x 2." },
-                { type: 'mc', text: "Wortel van 64 (√64)", options: ["8", "32", "6", "4"], answer: 0, hint: "Welk getal levert keer zichzelf precies 64 op?" }
+                { type: 'input', text: "Bereken: 5²", answer: "25", hint: "Een kwadraat is het getal keer zichzelf: 5 x 5 = 25." },
+                { type: 'mc', text: "Bereken: (-3)²", options: ["9", "-9", "-6", "6"], answer: 0, hint: "Door de haakjes vermenigvuldig je (-3) met (-3). Min x min = plus, dus 9." },
+                { type: 'mc', text: "Bereken: -3²", options: ["-9", "9", "-6", "6"], answer: 0, hint: "Zonder haakjes geldt het kwadraat alleen voor de 3: -(3 x 3) = -9." },
+                { type: 'mc', text: "Rekenvolgorde: 10 - 2 x 3", options: ["4", "24", "16", "5"], answer: 0, hint: "Eerst vermenigvuldigen: 2 x 3 = 6. Daarna aftrekken: 10 - 6 = 4." },
+                { type: 'input', text: "Bereken: 2³", answer: "8", hint: "2 tot de macht 3 is 2 x 2 x 2 = 8." },
+                { type: 'mc', text: "Wortel van 64 (√64)", options: ["8", "32", "6", "4"], answer: 0, hint: "Welk getal keer zichzelf is 64? 8 x 8 = 64, dus de wortel is 8." }
             ]
         };
 
@@ -662,7 +652,7 @@
             let correctAnswerText = (q.type === 'mc') ? q.options[q.answer] : q.answer;
 
             document.getElementById('feedback-correct-answer').innerText = correctAnswerText;
-            const explanationText = q.hint ? `💡 ${q.hint}` : "Bekijk de rekenregels goed en probeer de stappen te herhalen.";
+            const explanationText = q.hint ? `${q.hint}` : "Bekijk de rekenregels goed en probeer de stappen te herhalen.";
             document.getElementById('feedback-explanation').innerText = explanationText; 
 
             document.getElementById('feedback-modal').classList.remove('hidden-screen');
