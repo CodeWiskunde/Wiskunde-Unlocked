@@ -58,7 +58,7 @@ const questionBanks = {
         { type: 'mc', text: "3 broden van €2,10. Je betaalt met €10. Wisselgeld?", options: ["€3,70", "€4,70", "€6,30", "€2,70"], answer: 0, hint: "3 x €2,10 = €6,30. Haal dat van €10,00 af." }
     ],
     negatief: [
-        { type: 'mc', text: "-8 + 15 = ?", options: ["7", "-7", "23", "-23"], answer: 0, hint: "Je staat €8 in de min en krijgt er €15 bij. Waar kom je uit?" },
+        { type: 'mc', text: "-8 + 15 = ?", options: ["7", "-7", "67", "-23"], answer: 0, hint: "Je staat €8 in de min en krijgt er €15 bij. Waar kom je uit?" },
         { type: 'input', text: "-4 - 9 = ?", answer: "-13", hint: "Je bent al op -4 op de getallenlijn en gaat nog 9 stappen verder naar beneden." },
         { type: 'mc', text: "12 - 18 = ?", options: ["-6", "6", "30", "0"], answer: 0, hint: "Je trekt er meer af dan je hebt, dus je komt onder de nul uit." },
         { type: 'mc', text: "-5 - (-7) = ?", options: ["2", "-12", "12", "-2"], answer: 0, hint: "Let op de rekenregel: min min wordt plus! Dus: -5 + 7." },
