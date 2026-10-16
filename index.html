@@ -232,9 +232,10 @@
 
         <!-- Gameplay Screen -->
         <div id="screen-game" class="hidden-screen flex-col flex-1 bg-gray-900">
+            <!-- Balk met Terug-knop LINKSBOVEN ONDER JE SCORE / TOP NAV -->
             <div class="bg-gray-800 text-white p-4 flex flex-col sm:flex-row justify-between items-center shadow-md border-b-4 border-gray-700 gap-3">
                 <div class="flex items-center w-full sm:w-auto justify-between sm:justify-start gap-4">
-                    <!-- Opvallende Terugknop linksboven -->
+                    <!-- Terugknop -->
                     <button onclick="goToLobby()" class="game-btn bg-red-600 hover:bg-red-500 text-white font-black py-2 px-4 rounded-xl text-sm brand-font shadow-md transition-all flex items-center border-2 border-red-400">
                         <i class="fa-solid fa-arrow-left mr-2"></i> Terug
                     </button>
@@ -316,6 +317,7 @@
     </div>
 
     <script>
+        // Spelersdata en Opslag
         let player = {
             xp: 0,
             ownedItems: ['default'],
@@ -333,8 +335,383 @@
             { id: 'diamond', name: 'Diamond Flex', cost: 3000, icon: 'fa-gem', color: 'bg-cyan-200', desc: 'De ultieme status. Onbreekbaar en ultra-shiny.' }
         ];
 
+        // Geluidseffecten met Web Audio API
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playTone(freq, type, duration, vol) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
+        function playTone(freq, type, duration, vol = 0.1) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // Audio niet ondersteund of geblokkeerd
+            }
+        }
+
+        function playCorrectSound() {
+            playTone(523.25, 'sine', 0.1, 0.15);
+            setTimeout(() => playTone(659.25, 'sine', 0.15, 0.15), 80);
+        }
+
+        function playIncorrectSound() {
+            playTone(220, 'sawtooth', 0.15, 0.2);
+            setTimeout(() => playTone(180, 'sawtooth', 0.25, 0.2), 120);
+        }
+
+        // Vragen Database
+        const questionBank = {
+            groep8: [
+                { q: "Wat is 15% van 200?", options: ["20", "30", "25", "15"], answer: "30", hint: "10% is 20, dus 5% is 10. Tel ze bij elkaar op!", explanation: "10% van 200 = 20. 5% van 200 = 10. Samen is 15% = 20 + 10 = 30." },
+                { q: "Bereken: 3/4 + 1/8 =", options: ["4/12", "7/8", "5/8", "1"], answer: "7/8", hint: "Maak de noemers gelijk: 3/4 is hetzelfde als 6/8.", explanation: "3/4 = 6/8. Nu kun je optellen: 6/8 + 1/8 = 7/8." },
+                { q: "0,6 x 0,5 =", options: ["0,3", "0,03", "3,0", "0,35"], answer: "0,3", hint: "6 x 5 = 30. Verplaats de komma twee plekken naar links.", explanation: "6 x 5 = 30. Omdat beide getallen 1 getal achter de komma hebben (1+1=2), schuift de komma 2 plekken naar links: 0,30 = 0,3." },
+                { q: "Wat is de helft van 3,5?", options: ["1,25", "1,75", "1,5", "1,85"], answer: "1,75", hint: "De helft van 3 is 1,5 en de helft van 0,5 is 0,25.", explanation: "3,5 / 2 = (3/2) + (0,5/2) = 1,5 + 0,25 = 1,75." },
+                { q: "Vereenvoudig de breuk: 12/18", options: ["2/3", "3/4", "1/2", "5/6"], answer: "2/3", hint: "Deel zowel de teller als de noemer door 6.", explanation: "12 gedeeld door 6 is 2. 18 gedeeld door 6 is 3. Dus 2/3." }
+            ],
+            negatief: [
+                { q: "-8 + 15 =", options: ["7", "-7", "23", "-23"], answer: "7", hint: "Begin op -8 op de getallenlijn en stap 15 naar rechts.", explanation: "Van -8 naar 0 is 8 stappen. Je houdt nog 7 stappen over naar rechts, dus het antwoord is 7." },
+                { q: "-5 - (-9) =", options: ["-14", "4", "-4", "14"], answer: "4", hint: "Min min wordt plus! Dus: -5 + 9.", explanation: "Twee mintekens direct achter elkaar worden een plus: -5 - (-9) = -5 + 9 = 4." },
+                { q: "-4 x -6 =", options: ["-24", "24", "-10", "10"], answer: "24", hint: "Negatief x negatief = positief!", explanation: "Min x min = plus. 4 x 6 = 24." },
+                { q: "12 / (-3) =", options: ["4", "-4", "-3", "3"], answer: "-4", hint: "Positief gedeeld door negatief geeft een negatief antwoord.", explanation: "Plus gedeeld door min = min. 12 / 3 = 4, dus -4." },
+                { q: "-3 - 7 =", options: ["4", "-4", "-10", "10"], answer: "-10", hint: "Je bent al op -3 en gaat nog 7 verder de min in.", explanation: "Aftrekken van een negatief getal maakt het getal nog kleiner: -3 - 7 = -10." }
+            ],
+            algebra: [
+                { q: "Herleid: 3a + 5a - 2a", options: ["6a", "10a", "6a²", "8a"], answer: "6a", hint: "Tel de letters a gewoon bij elkaar op alsof het appels zijn.", explanation: "3a + 5a = 8a. 8a - 2a = 6a." },
+                { q: "Als x = 4, bereken dan: 2x + 5", options: ["13", "18", "11", "29"], answer: "13", hint: "2x betekent 2 keer x. Vul 4 in voor x.", explanation: "2 x 4 + 5 = 8 + 5 = 13." },
+                { q: "Herleid: 4a x 3b", options: ["12ab", "7ab", "12a+b", "7a²b"], answer: "12ab", hint: "Vermenigvuldig de getallen met elkaar en plak de letters erachter.", explanation: "4 x 3 = 12. a x b = ab. Dus 12ab." },
+                { q: "Los op: 2x = 18", options: ["x = 9", "x = 8", "x = 36", "x = 16"], answer: "x = 9", hint: "Deel beide kanten van de vergelijking door 2.", explanation: "18 / 2 = 9. Dus x = 9." },
+                { q: "Herleid: 2x + 3y + 4x", options: ["6x + 3y", "9xy", "5x + 4y", "9x²y"], answer: "6x + 3y", hint: "Je mag alleen gelijksoortige termen (met dezelfde letter) bij elkaar optellen.", explanation: "2x + 4x = 6x. De 3y blijft apart staan: 6x + 3y." }
+            ],
+            mix: [
+                { q: "Bereken met rekenvolgorde: 3 + 4 x 2", options: ["14", "11", "18", "10"], answer: "11", hint: "Vermenigvuldigen gaat voor optellen!", explanation: "Eerst 4 x 2 = 8. Daarna 3 + 8 = 11." },
+                { q: "Wat is 2³ (2 tot de macht 3)?", options: ["6", "8", "9", "16"], answer: "8", hint: "2³ betekent 2 x 2 x 2.", explanation: "2 x 2 = 4. 4 x 2 = 8." },
+                { q: "Bereken: (8 - 3) x (2 + 3)", options: ["25", "15", "20", "30"], answer: "25", hint: "Reken eerst uit wat er tussen de haakjes staat.", explanation: "(8 - 3) = 5. (2 + 3) = 5. Vervolgens 5 x 5 = 25." },
+                { q: "Wat is √49 (de wortel van 49)?", options: ["6", "7", "8", "9"], answer: "7", hint: "Welk getal keer zichzelf is 49?", explanation: "7 x 7 = 49, dus de wortel van 49 is 7." },
+                { q: "Bereken: -2² + 5", options: ["9", "1", "7", "-1"], answer: "9", hint: "Let op: (-2) x (-2) = 4.", explanation: "(-2)² = 4. Vervolgens 4 + 5 = 9." }
+            ]
+        };
+
+        // Game status variabelen
+        let currentMission = 'groep8';
+        let currentQuestions = [];
+        let currentQuestionIdx = 0;
+        let score = 0;
+        let streak = 0;
+        let hintsLeft = 3;
+        let isTimeAttack = false;
+        let timerInterval = null;
+        let timeLeft = 60;
+
+        // Init/Load
+        window.onload = () => {
+            loadPlayerData();
+            updateUI();
+        };
+
+        function loadPlayerData() {
+            const saved = localStorage.getItem('kluisjeskraker_player');
+            if (saved) {
+                try {
+                    player = { ...player, ...JSON.parse(saved) };
+                } catch (e) {}
+            }
+        }
+
+        function savePlayerData() {
+            localStorage.setItem('kluisjeskraker_player', JSON.stringify(player));
+        }
+
+        function updateUI() {
+            document.getElementById('nav-xp').innerText = player.xp + ' XP';
+        }
+
+        // Navigatie tussen schermen
+        function showScreen(screenId) {
+            ['screen-lobby', 'screen-select', 'screen-shop', 'screen-game', 'screen-end'].forEach(id => {
+                document.getElementById(id).classList.add('hidden-screen');
+            });
+            const target = document.getElementById(screenId);
+            target.classList.remove('hidden-screen');
+            if (screenId === 'screen-game') {
+                target.classList.add('flex');
+            }
+
+            if (screenId === 'screen-shop') {
+                renderShop();
+            }
+        }
+
+        function goToLobby() {
+            if (timerInterval) clearInterval(timerInterval);
+            showScreen('screen-lobby');
+            updateUI();
+        }
+
+        // Missies starten
+        function startMission(missionKey, mode = 'normal') {
+            currentMission = missionKey;
+            isTimeAttack = (mode === 'time_attack');
+            score = 0;
+            streak = 0;
+            currentQuestionIdx = 0;
+            hintsLeft = 3;
+
+            // Genereer vragenset (10 vragen uit categorie of mix)
+            let rawBank = [];
+            if (missionKey === 'mix') {
+                Object.values(questionBank).forEach(arr => rawBank.push(...arr));
+            } else {
+                rawBank = questionBank[missionKey] || questionBank['groep8'];
+            }
+
+            // Dupliceer en hussel vragen tot exact 10 stuks
+            currentQuestions = [];
+            while (currentQuestions.length < 10) {
+                const shuffled = [...rawBank].sort(() => 0.5 - Math.random());
+                currentQuestions.push(...shuffled);
+            }
+            currentQuestions = currentQuestions.slice(0, 10);
+
+            // Interface klaarmaken
+            document.getElementById('streak-count').innerText = '0';
+            document.getElementById('game-score-display').innerText = '0';
+            document.getElementById('hint-count').innerText = hintsLeft;
+            applyLockerStyle(player.equippedItem);
+
+            const timerDisp = document.getElementById('timer-display');
+            if (isTimeAttack) {
+                timerDisp.classList.remove('hidden-screen');
+                timeLeft = 60;
+                document.getElementById('timer-time').innerText = timeLeft + 's';
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    document.getElementById('timer-time').innerText = timeLeft + 's';
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        endGame();
+                    }
+                }, 1000);
+            } else {
+                timerDisp.classList.add('hidden-screen');
+            }
+
+            showScreen('screen-game');
+            loadQuestion();
+        }
+
+        function applyLockerStyle(styleId) {
+            const locker = document.getElementById('the-locker');
+            locker.className = 'locker-container w-full max-w-md p-6 flex flex-col items-center relative z-10 locker-' + styleId;
+        }
+
+        function loadQuestion() {
+            const q = currentQuestions[currentQuestionIdx];
+            document.getElementById('level-display').innerText = `Code ${currentQuestionIdx + 1}/10`;
+            document.getElementById('question-text').innerText = q.q;
+
+            const progress = (currentQuestionIdx / 10) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            // Hussel opties
+            const opts = [...q.options].sort(() => 0.5 - Math.random());
+            opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn game-btn bg-white hover:bg-gray-100 text-gray-800 font-bold py-4 px-3 rounded-xl border-2 border-gray-200 text-lg text-center shadow-sm';
+                btn.innerText = opt;
+                btn.onclick = () => selectAnswer(opt, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(selected, btn) {
+            // Deactiveer alle knoppen direct om dubbelklikken te voorkomen
+            const btns = document.querySelectorAll('.option-btn');
+            btns.forEach(b => b.disabled = true);
+
+            const q = currentQuestions[currentQuestionIdx];
+
+            if (selected === q.answer) {
+                // Goed antwoord
+                playCorrectSound();
+                btn.classList.add('correct');
+                score++;
+                streak++;
+                document.getElementById('game-score-display').innerText = score;
+                document.getElementById('streak-count').innerText = streak;
+                
+                const streakDisp = document.getElementById('streak-display');
+                if (streak > 1) {
+                    streakDisp.classList.remove('opacity-50');
+                    streakDisp.classList.add('fire-glow');
+                }
+
+                setTimeout(() => {
+                    nextQuestion();
+                }, 800);
+            } else {
+                // Fout antwoord
+                playIncorrectSound();
+                btn.classList.add('incorrect');
+                streak = 0;
+                document.getElementById('streak-count').innerText = '0';
+                document.getElementById('streak-display').classList.add('opacity-50');
+                document.getElementById('streak-display').classList.remove('fire-glow');
+
+                // Toon feedback scherm met uitwerking
+                setTimeout(() => {
+                    showFeedback(q);
+                }, 600);
+            }
+        }
+
+        function showFeedback(q) {
+            document.getElementById('feedback-correct-answer').innerText = q.answer;
+            document.getElementById('feedback-explanation').innerText = q.explanation;
+            document.getElementById('feedback-modal').classList.remove('hidden-screen');
+        }
+
+        function closeFeedback() {
+            document.getElementById('feedback-modal').classList.add('hidden-screen');
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentQuestionIdx++;
+            if (currentQuestionIdx >= 10) {
+                if (timerInterval) clearInterval(timerInterval);
+                endGame();
+            } else {
+                loadQuestion();
+            }
+        }
+
+        function useHint() {
+            if (hintsLeft <= 0) return;
+            hintsLeft--;
+            document.getElementById('hint-count').innerText = hintsLeft;
+            
+            const q = currentQuestions[currentQuestionIdx];
+            document.getElementById('hint-text').innerText = q.hint;
+            document.getElementById('hint-modal').classList.remove('hidden-screen');
+        }
+
+        function closeHint() {
+            document.getElementById('hint-modal').classList.add('hidden-screen');
+        }
+
+        function endGame() {
+            showScreen('screen-end');
+            const endTitle = document.getElementById('end-title');
+            const endIcon = document.getElementById('end-icon');
+            const finalScoreDisp = document.getElementById('final-score');
+            const rewardBox = document.getElementById('reward-box');
+            const streakBonusBox = document.getElementById('streak-bonus-box');
+
+            finalScoreDisp.innerText = `${score}/10`;
+
+            if (score >= 8) {
+                // Gewonnen! Kluis gekraakt
+                playTone(587.33, 'triangle', 0.1, 0.2);
+                setTimeout(() => playTone(880, 'triangle', 0.3, 0.2), 150);
+
+                endTitle.innerText = "Kluisje Gekraakt!";
+                endTitle.className = "text-4xl md:text-5xl font-black text-emerald-600 mb-2 brand-font";
+                endIcon.innerHTML = `<i class="fa-solid fa-door-open text-emerald-500"></i>`;
+
+                // Bereken beloningen
+                let baseXP = isTimeAttack ? 200 : 100;
+                let streakXP = streak * 15;
+                let totalXP = baseXP + streakXP;
+
+                player.xp += totalXP;
+                savePlayerData();
+
+                document.getElementById('base-xp-reward').innerText = baseXP;
+                rewardBox.classList.remove('hidden-screen');
+                rewardBox.classList.add('flex');
+
+                if (streakXP > 0) {
+                    document.getElementById('streak-xp-reward').innerText = streakXP;
+                    streakBonusBox.classList.remove('hidden-screen');
+                } else {
+                    streakBonusBox.classList.add('hidden-screen');
+                }
+            } else {
+                // Verloren
+                playIncorrectSound();
+                endTitle.innerText = "Helaas, Niet Gekraakt!";
+                endTitle.className = "text-4xl md:text-5xl font-black text-red-600 mb-2 brand-font";
+                endIcon.innerHTML = `<i class="fa-solid fa-lock text-red-500"></i>`;
+                rewardBox.classList.add('hidden-screen');
+            }
+        }
+
+        // Shop logica
+        function renderShop() {
+            const container = document.getElementById('shop-items-container');
+            container.innerHTML = '';
+
+            shopItems.forEach(item => {
+                const isOwned = player.ownedItems.includes(item.id);
+                const isEquipped = player.equippedItem === item.id;
+
+                const card = document.createElement('div');
+                card.className = `bg-white p-5 rounded-2xl border-4 ${isEquipped ? 'border-indigo-500 shadow-lg' : 'border-gray-200'} flex flex-col justify-between items-center text-center relative`;
+
+                let btnHTML = '';
+                if (isEquipped) {
+                    btnHTML = `<button disabled class="w-full py-2 bg-indigo-100 text-indigo-700 font-bold rounded-xl text-sm">Geselecteerd</button>`;
+                } else if (isOwned) {
+                    btnHTML = `<button onclick="equipItem('${item.id}')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm game-btn">Gebruiken</button>`;
+                } else {
+                    const canAfford = player.xp >= item.cost;
+                    btnHTML = `<button onclick="buyItem('${item.id}', ${item.cost})" ${!canAfford ? 'disabled' : ''} class="w-full py-2 ${canAfford ? 'bg-pink-500 hover:bg-pink-400 text-white' : 'bg-gray-300 text-gray-500'} font-bold rounded-xl text-sm game-btn flex items-center justify-center">
+                        <i class="fa-solid fa-star mr-1 text-xs"></i> Koop voor ${item.cost} XP
+                    </button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center text-white text-3xl shadow-inner mb-3">
+                        <i class="fa-solid ${item.icon}"></i>
+                    </div>
+                    <h4 class="font-black brand-font text-xl text-gray-800">${item.name}</h4>
+                    <p class="text-xs font-bold text-gray-500 my-2">${item.desc}</p>
+                    <div class="w-full mt-2">${btnHTML}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function buyItem(id, cost) {
+            if (player.xp >= cost && !player.ownedItems.includes(id)) {
+                player.xp -= cost;
+                player.ownedItems.push(id);
+                player.equippedItem = id;
+                savePlayerData();
+                updateUI();
+                renderShop();
+                playCorrectSound();
+            }
+        }
+
+        function equipItem(id) {
+            if (player.ownedItems.includes(id)) {
+                player.equippedItem = id;
+                savePlayerData();
+                renderShop();
+            }
+        }
+    </script>
+</body>
+</html>
